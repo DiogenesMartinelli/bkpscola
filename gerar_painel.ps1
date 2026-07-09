@@ -14,6 +14,7 @@ $logErro = Join-Path $raiz 'painel_erros.log'
 
 $erro = $false
 $arquivos = @()
+$pastas = @()
 try {
     # via cmd /c para o stderr do rclone (avisos) nao virar excecao no PS 5.1
     $json = cmd /c "`"$rclone`" lsjson `"gdrive:$pastaDrive`" -R --files-only --config `"$conf`" 2>nul"
@@ -21,6 +22,10 @@ try {
     $lista = ($json -join "`n") | ConvertFrom-Json
     foreach ($f in $lista) {
         $arquivos += @{ p = $f.Path; s = [long]$f.Size; m = $f.ModTime }
+    }
+    $jsonP = cmd /c "`"$rclone`" lsjson `"gdrive:$pastaDrive`" --dirs-only --config `"$conf`" 2>nul"
+    if ($LASTEXITCODE -eq 0) {
+        foreach ($p in (($jsonP -join "`n") | ConvertFrom-Json)) { $pastas += $p.Path }
     }
 } catch {
     $erro = $true
@@ -30,6 +35,7 @@ try {
 $dados = @{
     geradoEm = (Get-Date -Format 'dd/MM/yyyy HH:mm')
     erro     = $erro
+    pastas   = $pastas
     arquivos = $arquivos
 }
 $dadosJson = ConvertTo-Json $dados -Depth 5 -Compress

@@ -50,6 +50,10 @@ def main():
         links = json.load(open('links.json', encoding='utf-8')) or {}
     except Exception:
         links = {}
+    try:
+        pastas = [p['Path'] for p in json.load(open('pastas.json', encoding='utf-8'))]
+    except Exception:
+        pastas = []
 
     arquivos = [{'p': f['Path'], 's': f['Size'], 'm': f['ModTime'],
                  'u': links.get(f['Path'], '')} for f in lista]
@@ -60,9 +64,12 @@ def main():
         admin = pasta.lower() in ('admin', '*')
         if admin:
             meus = arquivos
+            minhas_pastas = pastas
         else:
             meus = [a for a in arquivos if a['p'].split('/')[0].upper() == pasta.upper()]
+            minhas_pastas = [p for p in pastas if p.upper() == pasta.upper()]
         payload = json.dumps({'geradoEm': gerado_em, 'erro': False, 'admin': admin,
+                              'pastas': minhas_pastas,
                               'arquivos': meus}, ensure_ascii=False).encode()
         chave = chave_do_usuario(email, senha)
         nonce = secrets.token_bytes(12)

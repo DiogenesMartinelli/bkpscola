@@ -72,6 +72,17 @@ usuario@municipio2.com;MaisUmaSenha;NOME-DA-PASTA-2
 - Use senhas fortes: os blocos cifrados são públicos, então senha fraca
   pode ser quebrada por tentativa e erro
 
+### Frequência de atualização
+
+- Automática a cada **10 minutos** (agendador do GitHub; pode atrasar em picos)
+- Pastas recém-criadas no Drive aparecem como "Aguardando 1º backup"
+- **Atualização instantânea (opcional)**: o `backup_scola.bat` do cliente pode
+  avisar o painel logo após enviar o backup. Para ativar: crie um token em
+  github.com → Settings → Developer settings → **Fine-grained tokens**, com
+  acesso somente a este repositório e permissão **Actions: Read and write**;
+  salve o token (linha única) num arquivo `gatilho_painel.txt` ao lado do
+  `backup_scola.bat` em cada cliente. Sem esse arquivo, nada muda.
+
 ## Segurança — IMPORTANTE
 
 O arquivo **`rclone/rclone.conf` contém o token de acesso ao seu Google Drive**.

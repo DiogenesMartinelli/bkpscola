@@ -192,6 +192,8 @@ function iniciar(dados) {
     const per = mp ? mp[1] : (dt.getHours() < 12 ? '1' : dt.getHours() < 18 ? '2' : '3');
     clientes[cli].push({ nome: partes[partes.length-1], size: a.s, mod: dt, per, url: a.u || '' });
   }
+  // pastas criadas no Drive que ainda nao receberam nenhum arquivo
+  for (const p of (dados.pastas || [])) if (!clientes[p]) clientes[p] = [];
   nomes = Object.keys(clientes).sort();
   if (dados.erro) {
     cont.insertAdjacentHTML('beforeend',
@@ -216,10 +218,10 @@ function render() {
   let totalBytes = 0, totalArqs = 0, emDia = 0, problema = 0;
   const infoCli = nomes.map(n => {
     const arqs = clientes[n];
-    const ultimo = new Date(Math.max(...arqs.map(a => a.mod)));
-    const horas = (Date.now() - ultimo) / 3600000;
-    const st = statusDe(horas);
-    if (st.cls === 'ok') emDia++; else problema++;
+    const ultimo = arqs.length ? new Date(Math.max(...arqs.map(a => a.mod))) : null;
+    const horas = ultimo ? (Date.now() - ultimo) / 3600000 : Infinity;
+    const st = arqs.length ? statusDe(horas) : { cls:'warn', icone:'◌', rotulo:'Aguardando 1º backup' };
+    if (arqs.length) { if (st.cls === 'ok') emDia++; else problema++; }
     const bytes = arqs.reduce((s,a) => s + a.size, 0);
     totalBytes += bytes; totalArqs += arqs.length;
     return { nome: n, arqs, ultimo, horas, st, bytes };
@@ -268,14 +270,16 @@ function render() {
         <div class="cli-nome">${c.nome}</div>
         <span class="pill ${c.st.cls}">${c.st.icone} ${c.st.rotulo}</span>
       </div>
-      <div class="cli-meta">Último backup: <b>${c.ultimo.toLocaleDateString('pt-BR')} ${c.ultimo.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b> (${quando}) · ${c.arqs.length} ${c.arqs.length === 1 ? 'arquivo' : 'arquivos'} · ${fmtMB(c.bytes)}</div>
+      <div class="cli-meta">${c.ultimo
+        ? `Último backup: <b>${c.ultimo.toLocaleDateString('pt-BR')} ${c.ultimo.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</b> (${quando}) · ${c.arqs.length} ${c.arqs.length === 1 ? 'arquivo' : 'arquivos'} · ${fmtMB(c.bytes)}`
+        : 'Pasta criada no Drive — nenhum backup recebido ainda'}</div>
       ${grade(c.arqs)}
       <div class="legenda">
         <span><span class="dot feito"></span> feito</span>
         <span><span class="dot falta"></span> faltou</span>
         <span><span class="dot futuro"></span> ainda não chegou a hora</span>
       </div>
-      <details>
+      ${c.arqs.length ? `<details>
         <summary>Ver arquivos no Drive</summary>
         <table class="arqs">
           <tr><th>Arquivo</th><th style="text-align:right">Tamanho</th><th style="text-align:right">Enviado em</th></tr>
@@ -283,7 +287,7 @@ function render() {
             <tr><td>${a.url ? '<a class="arq-link" href="' + a.url + '" target="_blank" rel="noopener" title="Abrir/baixar este backup no Google Drive">' + a.nome + '</a>' : a.nome}</td><td class="num">${fmtMB(a.size)}</td>
             <td class="num">${a.mod.toLocaleDateString('pt-BR')} ${a.mod.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td></tr>`).join('')}
         </table>
-      </details>
+      </details>` : ''}
     </div>`;
   }).join('');
   cont.insertAdjacentHTML('beforeend', '<div class="clientes">' + cards + '</div>');

@@ -2,8 +2,8 @@ name: Atualiza painel
 
 on:
   schedule:
-    - cron: '*/30 * * * *'   # a cada 30 minutos (horario UTC; pode atrasar alguns min)
-  workflow_dispatch:          # permite rodar manualmente na aba Actions
+    - cron: '*/10 * * * *'   # a cada 10 minutos (pode atrasar alguns min nos picos)
+  workflow_dispatch:          # rodar manualmente OU disparado pelo backup do cliente
   push:
     branches: [main]          # republica quando o codigo mudar
 
@@ -48,6 +48,7 @@ jobs:
           printf '%s' "$RCLONE_CONF" > rclone.conf
           export RCLONE_CONFIG=$PWD/rclone.conf
           rclone lsjson "gdrive:BackupSCOLA" -R --files-only > lista.json
+          rclone lsjson "gdrive:BackupSCOLA" --dirs-only > pastas.json
           # link de compartilhamento de cada arquivo (clique no painel abre/baixa)
           : > links.txt
           jq -r '.[].Path' lista.json | while IFS= read -r p; do
@@ -56,7 +57,7 @@ jobs:
           done
           jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {(.[0]): (.[1] // "")}) | add // {}' links.txt > links.json
           GERADO_EM=$(date '+%d/%m/%Y %H:%M') python3 gerar_site.py
-          rm -f rclone.conf lista.json links.json links.txt
+          rm -f rclone.conf lista.json pastas.json links.json links.txt
 
       - uses: actions/upload-pages-artifact@v3
         with:
