@@ -3,4 +3,5 @@ rclone/
 
 # gerados em tempo de execucao (podem conter nomes de clientes)
 painel.html
+painel_exemplo.html
 *.log
