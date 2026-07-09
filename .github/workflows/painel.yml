@@ -1,0 +1,54 @@
+name: Atualiza painel
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # a cada 30 minutos (horario UTC; pode atrasar alguns min)
+  workflow_dispatch:          # permite rodar manualmente na aba Actions
+  push:
+    branches: [main]          # republica quando o codigo mudar
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  gerar-e-publicar:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      TZ: America/Cuiaba
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instala rclone
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone jq
+
+      - name: Consulta o Google Drive e gera o painel
+        env:
+          RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        run: |
+          if [ -z "$RCLONE_CONF" ]; then
+            echo "ERRO: crie o secret RCLONE_CONF em Settings > Secrets and variables > Actions"
+            exit 1
+          fi
+          printf '%s' "$RCLONE_CONF" > rclone.conf
+          rclone lsjson "gdrive:BackupSCOLA" -R --files-only --config rclone.conf > lista.json
+          GERADO_EM=$(date '+%d/%m/%Y %H:%M')
+          jq -c --arg g "$GERADO_EM" '{geradoEm: $g, erro: false, arquivos: [.[] | {p: .Path, s: .Size, m: .ModTime}]}' lista.json > dados.json
+          mkdir -p site
+          python3 -c "import io; tpl = io.open('painel_template.html', encoding='utf-8').read(); d = io.open('dados.json', encoding='utf-8').read(); io.open('site/index.html', 'w', encoding='utf-8').write(tpl.replace('__DADOS__', d))"
+          rm -f rclone.conf lista.json dados.json
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
