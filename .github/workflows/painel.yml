@@ -27,24 +27,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Instala rclone
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq rclone jq
+      - name: Instala dependencias
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq rclone jq
+          python3 -m pip install --quiet cryptography
 
-      - name: Consulta o Google Drive e gera o painel
+      - name: Consulta o Google Drive e gera o site
         env:
           RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+          USUARIOS: ${{ secrets.USUARIOS }}
         run: |
           if [ -z "$RCLONE_CONF" ]; then
             echo "ERRO: crie o secret RCLONE_CONF em Settings > Secrets and variables > Actions"
             exit 1
           fi
+          if [ -z "$USUARIOS" ]; then
+            echo "ERRO: crie o secret USUARIOS (uma linha por usuario: email;senha;PASTA ou email;senha;admin)"
+            exit 1
+          fi
           printf '%s' "$RCLONE_CONF" > rclone.conf
-          rclone lsjson "gdrive:BackupSCOLA" -R --files-only --config rclone.conf > lista.json
-          GERADO_EM=$(date '+%d/%m/%Y %H:%M')
-          jq -c --arg g "$GERADO_EM" '{geradoEm: $g, erro: false, arquivos: [.[] | {p: .Path, s: .Size, m: .ModTime}]}' lista.json > dados.json
-          mkdir -p site
-          python3 -c "import io; tpl = io.open('painel_template.html', encoding='utf-8').read(); d = io.open('dados.json', encoding='utf-8').read(); io.open('site/index.html', 'w', encoding='utf-8').write(tpl.replace('__DADOS__', d))"
-          rm -f rclone.conf lista.json dados.json
+          export RCLONE_CONFIG=$PWD/rclone.conf
+          rclone lsjson "gdrive:BackupSCOLA" -R --files-only > lista.json
+          # link de compartilhamento de cada arquivo (clique no painel abre/baixa)
+          : > links.txt
+          jq -r '.[].Path' lista.json | while IFS= read -r p; do
+            url=$(rclone link "gdrive:BackupSCOLA/$p" 2>/dev/null || true)
+            printf '%s\t%s\n' "$p" "$url" >> links.txt
+          done
+          jq -R -s 'split("\n") | map(select(length > 0) | split("\t") | {(.[0]): (.[1] // "")}) | add // {}' links.txt > links.json
+          GERADO_EM=$(date '+%d/%m/%Y %H:%M') python3 gerar_site.py
+          rm -f rclone.conf lista.json links.json links.txt
 
       - uses: actions/upload-pages-artifact@v3
         with:

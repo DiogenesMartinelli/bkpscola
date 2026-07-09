@@ -47,6 +47,31 @@ a aba aberta, que ela se recarrega sozinha a cada 5 minutos.
 | `painel_template.html` | visual do painel (HTML/CSS/JS puro, sem dependências) |
 | `painel_oculto.vbs` | atualização silenciosa usada pela tarefa agendada |
 
+## Site publicado com login (GitHub Pages)
+
+O workflow `.github/workflows/painel.yml` publica o painel no GitHub Pages a
+cada 30 minutos, protegido por **login com criptografia real**: os dados de
+cada usuário são cifrados com **AES-256-GCM** (chave derivada da senha via
+PBKDF2), então os arquivos publicados são ilegíveis sem a senha.
+
+Usuários são definidos no secret **`USUARIOS`** (Settings → Secrets and
+variables → Actions), uma linha por usuário:
+
+```
+email-do-admin@exemplo.com;SenhaForte;admin
+usuario@municipio1.com;OutraSenha;NOME-DA-PASTA-1
+usuario@municipio2.com;MaisUmaSenha;NOME-DA-PASTA-2
+```
+
+- `admin` no lugar da pasta = vê todos os municípios
+- Cada usuário de município vê **apenas** a pasta indicada
+- Só quem tem acesso de dono ao repositório consegue ver/editar o secret —
+  ou seja, só o dono cria usuários e troca senhas
+- Ao clicar no nome de um arquivo no painel, ele abre/baixa pelo link de
+  compartilhamento do Google Drive (gerado automaticamente pelo workflow)
+- Use senhas fortes: os blocos cifrados são públicos, então senha fraca
+  pode ser quebrada por tentativa e erro
+
 ## Segurança — IMPORTANTE
 
 O arquivo **`rclone/rclone.conf` contém o token de acesso ao seu Google Drive**.

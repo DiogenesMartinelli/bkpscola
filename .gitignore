@@ -5,3 +5,7 @@ rclone/
 painel.html
 painel_exemplo.html
 *.log
+site/
+lista.json
+links.json
+links.txt
