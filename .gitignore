@@ -1,0 +1,6 @@
+# credenciais do Google Drive - NUNCA commitar
+rclone/
+
+# gerados em tempo de execucao (podem conter nomes de clientes)
+painel.html
+*.log
