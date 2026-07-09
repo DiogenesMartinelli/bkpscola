@@ -155,9 +155,11 @@ for (const a of (DADOS.arquivos || [])) {
   if (partes.length < 2) continue;               // arquivo solto na raiz
   const cli = partes[0];
   if (!clientes[cli]) clientes[cli] = [];
-  const m = new Date(a.m);
-  const per = (a.p.match(/_p([123])\.(rar|zip)$/i) || [])[1] || null;
-  clientes[cli].push({ nome: partes[partes.length-1], size: a.s, mod: m, per });
+  const dt = new Date(a.m);
+  // período: usa o _pN do nome se existir; senão classifica pelo horário do envio
+  const mp = a.p.match(/_p([123])\.(rar|zip)$/i);
+  const per = mp ? mp[1] : (dt.getHours() < 12 ? '1' : dt.getHours() < 18 ? '2' : '3');
+  clientes[cli].push({ nome: partes[partes.length-1], size: a.s, mod: dt, per });
 }
 const nomes = Object.keys(clientes).sort();
 const cont = document.getElementById('conteudo');
@@ -264,32 +266,32 @@ function render() {
   });
 }
 
-// grade: últimos 4 dias × períodos 1..3 + manuais
+// grade: últimos 4 dias × períodos matutino / vespertino / noturno
 function grade(arqs) {
   const dias4 = [];
   for (let i = 3; i >= 0; i--) { const d = new Date(hoje); d.setDate(d.getDate()-i); dias4.push(d); }
   const agoraH = new Date().getHours();
-  let manuais = 0;
+  const PERIODOS = [
+    { p: '1', rot: 'matutino',   fim: 12 },
+    { p: '2', rot: 'vespertino', fim: 18 },
+    { p: '3', rot: 'noturno',    fim: 24 }
+  ];
   const feitos = {};
-  for (const a of arqs) {
-    if (!a.per) { manuais++; continue; }
-    feitos[dkey(a.mod) + '_' + a.per] = true;
-  }
+  for (const a of arqs) feitos[dkey(a.mod) + '_' + a.per] = true;
   let head = '<tr><th></th>' + dias4.map(d => `<th>${DIAS_SEM[d.getDay()]} ${String(d.getDate()).padStart(2,'0')}</th>`).join('') + '</tr>';
   let linhas = '';
-  for (const p of ['1','2','3']) {
-    linhas += `<tr><td class="rot">período ${p}</td>` + dias4.map(d => {
+  for (const per of PERIODOS) {
+    linhas += `<tr><td class="rot">${per.rot}</td>` + dias4.map(d => {
       const ehHoje = dkey(d) === dkey(hoje);
-      const feito = feitos[dkey(d) + '_' + p];
+      const feito = feitos[dkey(d) + '_' + per.p];
       let cls = feito ? 'feito' : 'falta';
-      // hoje: períodos futuros aproximados (p1 manhã, p2 tarde, p3 noite) ainda não venceram
-      if (!feito && ehHoje && agoraH < ({'1':10,'2':15,'3':21})[p]) cls = 'futuro';
-      const tip = `${DIAS_SEM[d.getDay()]} ${d.toLocaleDateString('pt-BR')} · período ${p}: ${cls === 'feito' ? 'backup recebido' : cls === 'futuro' ? 'ainda não chegou a hora' : 'não recebido'}`;
+      // hoje: enquanto o período não terminar, o backup ainda pode chegar
+      if (!feito && ehHoje && agoraH < per.fim) cls = 'futuro';
+      const tip = `${DIAS_SEM[d.getDay()]} ${d.toLocaleDateString('pt-BR')} · ${per.rot}: ${cls === 'feito' ? 'backup recebido' : cls === 'futuro' ? 'ainda não chegou a hora' : 'não recebido'}`;
       return `<td><span class="dot ${cls}" data-tip="${tip}"></span></td>`;
     }).join('') + '</tr>';
   }
-  return '<table class="grade">' + head + linhas + '</table>' +
-    (manuais ? `<div class="legenda" style="margin-bottom:8px"><span>+ ${manuais} backup${manuais>1?'s':''} manual${manuais>1?'is':''} (sem período)</span></div>` : '');
+  return '<table class="grade">' + head + linhas + '</table>';
 }
 
 // gráfico de barras SVG: topo arredondado 4px, hairlines, rótulo no maior valor e no último dia
