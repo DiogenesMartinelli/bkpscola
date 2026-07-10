@@ -31,8 +31,13 @@
     --pill-good-bg: rgba(12,163,12,0.12);
     --pill-warn-bg: rgba(250,178,25,0.18);
     --pill-crit-bg: rgba(208,59,59,0.10);
-    --header-ink: #f2f9fc;
-    --header-sub: rgba(226,242,248,.85);
+    --header-bg: linear-gradient(135deg, #ffffff 0%, #ecf4f8 100%);
+    --header-ink: #0e3a4d;
+    --header-sub: #4a6a77;
+    --header-borda: rgba(14,66,88,.35);
+    --header-btnbg: rgba(14,66,88,.06);
+    --header-btnhover: rgba(14,66,88,.14);
+    --header-anel: rgba(14,66,88,.18);
   }
   /* ===== tema escuro ===== */
   :root[data-theme="dark"] {
@@ -57,8 +62,13 @@
     --pill-good-bg: rgba(33,180,33,0.16);
     --pill-warn-bg: rgba(250,178,25,0.14);
     --pill-crit-bg: rgba(224,82,82,0.16);
+    --header-bg: linear-gradient(135deg, #0b3547 0%, #12506a 45%, #1e7d9f 100%);
     --header-ink: #f0f8fb;
     --header-sub: rgba(214,236,244,.80);
+    --header-borda: rgba(255,255,255,.35);
+    --header-btnbg: rgba(255,255,255,.10);
+    --header-btnhover: rgba(255,255,255,.22);
+    --header-anel: rgba(255,255,255,.22);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html { min-height: 100%; }
@@ -74,7 +84,7 @@
   header {
     position: relative; overflow: hidden;
     display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
-    background: var(--petrol-grad);
+    background: var(--header-bg);
     border-radius: 16px;
     padding: 18px 22px;
     margin-bottom: 20px;
@@ -84,17 +94,17 @@
   header > * { position: relative; }
   header h1 { font-size: 21px; font-weight: 650; color: var(--header-ink); letter-spacing: .2px; }
   header .sub { color: var(--header-sub); font-size: 12.5px; }
-  header .logo { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 2px 10px rgba(0,0,0,.35), 0 0 0 2px rgba(255,255,255,.22); }
+  header .logo { width: 44px; height: 44px; border-radius: 11px; box-shadow: 0 2px 10px rgba(0,0,0,.25), 0 0 0 2px var(--header-anel); }
   #sair { margin-left: auto; }
-  #sair a { color: var(--header-ink); font-size: 12.5px; text-decoration: none; opacity: .85; border: 1px solid rgba(255,255,255,.35); border-radius: 999px; padding: 4px 12px; }
-  #sair a:hover { opacity: 1; background: rgba(255,255,255,.12); }
+  #sair a { color: var(--header-ink); font-size: 12.5px; text-decoration: none; opacity: .85; border: 1px solid var(--header-borda); border-radius: 999px; padding: 4px 12px; }
+  #sair a:hover { opacity: 1; background: var(--header-btnhover); }
   #tema-btn {
     margin-left: 8px; width: 34px; height: 34px; border-radius: 50%;
-    border: 1px solid rgba(255,255,255,.35); background: rgba(255,255,255,.10);
+    border: 1px solid var(--header-borda); background: var(--header-btnbg);
     color: var(--header-ink); font-size: 16px; cursor: pointer; line-height: 1;
     transition: background .2s, transform .2s;
   }
-  #tema-btn:hover { background: rgba(255,255,255,.22); transform: rotate(15deg); }
+  #tema-btn:hover { background: var(--header-btnhover); transform: rotate(15deg); }
   /* ===== cartoes ===== */
   .card {
     background: var(--surface-1);
@@ -378,9 +388,8 @@ function grade(arqs) {
     linhas += `<tr><td class="rot">${per.rot}</td>` + dias4.map(d => {
       const ehHoje = dkey(d) === dkey(hoje);
       const feito = feitos[dkey(d) + '_' + per.p];
-      let cls = feito ? 'feito' : 'falta';
-      // hoje: enquanto o período não terminar, o backup ainda pode chegar
-      if (!feito && ehHoje && agoraH < per.fim) cls = 'futuro';
+      // hoje inteiro conta como "ainda pode chegar"; so vira "faltou" no dia seguinte
+      let cls = feito ? 'feito' : (ehHoje ? 'futuro' : 'falta');
       const tip = `${DIAS_SEM[d.getDay()]} ${d.toLocaleDateString('pt-BR')} · ${per.rot}: ${cls === 'feito' ? 'backup recebido' : cls === 'futuro' ? 'ainda não chegou a hora' : 'não recebido'}`;
       return `<td><span class="dot ${cls}" data-tip="${tip}"></span></td>`;
     }).join('') + '</tr>';
